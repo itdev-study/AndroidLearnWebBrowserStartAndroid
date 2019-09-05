@@ -4,8 +4,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.WebBackForwardList;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -20,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
     EditText strUrl;
     WebView webvMainWeb;
     ImageButton btnBack, btnForward, btnRefresh, btnRequest;
+    InputMethodManager inputMethodManager;
+    String historyUrl;
+    WebBackForwardList mWebBackForwardList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
         btnForward = (ImageButton)findViewById(R.id.btnForward);
         btnRefresh = (ImageButton)findViewById(R.id.btnRefresh);
         btnRequest = (ImageButton)findViewById(R.id.btnRequest);
+        inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 
         webvMainWeb.setWebViewClient(new WebViewClient());
         WebSettings webset = webvMainWeb.getSettings();
@@ -44,20 +50,45 @@ public class MainActivity extends AppCompatActivity {
 
         webvMainWeb.loadUrl("https://www.google.com");
 
+        strUrl.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View view, int keyCode, KeyEvent event) {
+                if ((event.getAction() == KeyEvent.ACTION_DOWN) &&
+                        (keyCode == KeyEvent.KEYCODE_ENTER)) {
+                    // Perform action on key press
+
+                    String url = strUrl.getText().toString();
+                    if (!url.startsWith("http://")) {
+                        url = "http://" + url;
+                    }
+
+                    Toast.makeText(MainActivity.this, url, Toast.LENGTH_SHORT).show();
+
+                    webvMainWeb.loadUrl(url);
+                    inputMethodManager.hideSoftInputFromWindow(webvMainWeb.getWindowToken(), 0);
+
+                    return true;
+                }
+                return false;
+            }
+        });
+
         btnRequest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast toast = Toast.makeText(MainActivity.this, "Переход на страницу", Toast.LENGTH_LONG);
-                toast.show();
+
 
                 String url = strUrl.getText().toString();
                 if (!url.startsWith("http://")) {
                     url = "http://" + url;
                 }
 
+                Toast toast = Toast.makeText(MainActivity.this, url, Toast.LENGTH_LONG);
+                toast.show();
+
                 webvMainWeb.loadUrl(url);
 
-                InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                //InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                 inputMethodManager.hideSoftInputFromWindow(webvMainWeb.getWindowToken(), 0);
 
             }
@@ -66,8 +97,14 @@ public class MainActivity extends AppCompatActivity {
         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast toast = Toast.makeText(MainActivity.this, "Назад", Toast.LENGTH_LONG);
+
+                mWebBackForwardList = webvMainWeb.copyBackForwardList();
+                if (mWebBackForwardList.getCurrentIndex() > 0)
+                 historyUrl = mWebBackForwardList.getItemAtIndex(mWebBackForwardList.getCurrentIndex()-1).getUrl();
+
+                Toast toast = Toast.makeText(MainActivity.this, "Возврат: "+historyUrl, Toast.LENGTH_LONG);
                 toast.show();
+
                 if (webvMainWeb.canGoBack()) webvMainWeb.goBack();
             }
         });
@@ -75,7 +112,11 @@ public class MainActivity extends AppCompatActivity {
         btnForward.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast toast = Toast.makeText(MainActivity.this, "Вперед", Toast.LENGTH_LONG);
+
+                if (mWebBackForwardList.getCurrentIndex() > 0)
+                    historyUrl = mWebBackForwardList.getItemAtIndex(mWebBackForwardList.getCurrentIndex()-1).getUrl();
+
+                Toast toast = Toast.makeText(MainActivity.this, "Вперед: " + historyUrl, Toast.LENGTH_LONG);
                 toast.show();
                 if (webvMainWeb.canGoForward()) webvMainWeb.goForward();
             }
